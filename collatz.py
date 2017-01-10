@@ -1,5 +1,7 @@
 from random import randint
 
+from bokeh.plotting import figure, output_file, show
+
 
 class collatzGen(object):
     """
@@ -116,6 +118,43 @@ class collatzTree(object):
         for x in xrange(1, n):
             self.add_sequence(x)
 
+    def display(self):
+        """
+        Displays the collatz tree graphically.
+        """
+        # First, we need to know the x and y coordinates of each node, so we
+        # traverse the tree breadth-first, assigning an (x, y) pair to each node.
+
+        output_file("collatzTree.html")
+        cDisplay = figure(plot_width=640, plot_height=640)
+
+    class traverser(object):
+        """
+        A special generator object made to help traverse the collatz tree.
+        """
+        def __init__(self, tree, root, method='bf'):
+            self.tree = tree
+            self.root = root
+            self.method = method
+            if method == 'bf':
+                self.children = [root]
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            """
+            Returns the next node of the tree according to the given traversal
+            method.
+            """
+            if self.method == 'bf':
+                return self.__bf_traverse()
+
+        def __bf_traverse(self):
+            self.root = self.children.pop(0)
+            self.children += self.tree[self.root]
+            return self.root
+
     def __str__(self):
         return str(self.tree)
 
@@ -123,4 +162,6 @@ class collatzTree(object):
 if __name__ == '__main__':
     ctzTree = collatzTree()
     ctzTree.built_tree(15)
+    for node in ctzTree.traverser(ctzTree.tree, 1):
+        print(node)
     print(ctzTree)
