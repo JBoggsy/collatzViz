@@ -1,7 +1,6 @@
+from PIL import Image
 from random import randint
-
-from bokeh.plotting import figure, output_file, show
-
+import subprocess, sys
 
 class collatzGen(object):
     """
@@ -111,49 +110,39 @@ class collatzTree(object):
             self.__add_parent_and_child(parent, child)
             child = parent
 
-    def built_tree(self, n):
+    def build_tree(self, n):
         """
         Builds the tree by adding sequences from 1 to n.
         """
         for x in xrange(1, n):
             self.add_sequence(x)
 
-    def display(self):
+    def generate_dot_file(self):
         """
-        Displays the collatz tree graphically.
+        Generates a .gv file for displaying the collatz tree.
         """
-        # First, we need to know the x and y coordinates of each node, so we
-        # traverse the tree breadth-first, assigning an (x, y) pair to each node.
+        dot_text = "digraph cltzTree {"
+        queue = [1]
+        while queue != []:
+            parent = queue.pop(0)
+            childs = self.tree[parent]
+            for child in childs:
+                queue.append(child)
+                dot_text += "\n\t{c} -> {p};".format(p=parent, c=child)
+        dot_text += "\n}"
+        return dot_text
 
-        output_file("collatzTree.html")
-        cDisplay = figure(plot_width=640, plot_height=640)
-
-    class traverser(object):
+    def display_tree(self):
         """
-        A special generator object made to help traverse the collatz tree.
+        Uses the generate_dot_file() command to create a graphviz gv file and
+        then displays it.
         """
-        def __init__(self, tree, root, method='bf'):
-            self.tree = tree
-            self.root = root
-            self.method = method
-            if method == 'bf':
-                self.children = [root]
+        dotFileText = self.generate_dot_file()
+        with open("collatzTreeFile.gv", "w") as writeFile:
+            writeFile.write(dotFileText)
+        subprocess.call(["dot", "collatzTreeFile.gv", "-Tpng", "-ocollatzTreeViz.png"])
+        subprocess.call(["eog", "collatzTreeViz.png"])
 
-        def __iter__(self):
-            return self
-
-        def next(self):
-            """
-            Returns the next node of the tree according to the given traversal
-            method.
-            """
-            if self.method == 'bf':
-                return self.__bf_traverse()
-
-        def __bf_traverse(self):
-            self.root = self.children.pop(0)
-            self.children += self.tree[self.root]
-            return self.root
 
     def __str__(self):
         return str(self.tree)
@@ -161,7 +150,6 @@ class collatzTree(object):
 
 if __name__ == '__main__':
     ctzTree = collatzTree()
-    ctzTree.built_tree(15)
-    for node in ctzTree.traverser(ctzTree.tree, 1):
-        print(node)
-    print(ctzTree)
+    ctzTree.build_tree(int(sys.argv[1]))
+    print(ctzTree.display_tree())
+    print(len(ctzTree.tree))
